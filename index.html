@@ -71,8 +71,8 @@
 
   /* Header */
   #header {
-    position: fixed; top: 16px; right: 16px;
-    display: flex; align-items: center; gap: 10px; z-index: 40;
+    position: fixed; top: 12px; right: 12px;
+    display: flex; align-items: center; gap: 8px; z-index: 100;
   }
   #step-counter {
     background: var(--ink); color: var(--bg);
@@ -368,6 +368,78 @@
     .title-big { font-size: 26px; }
     .qnum { width: 30px; height: 30px; font-size: 13px; margin-right: 8px; }
   }
+
+  /* Washou : caché sur mobile, visible desktop */
+  @media (max-width:700px) {
+    .washou-wrap { display: none !important; }
+    .welcome-layout {
+      flex-direction: column !important;
+      align-items: center !important;
+      text-align: center !important;
+    }
+    .welcome-content {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      text-align: center !important;
+      width: 100% !important;
+    }
+    .btn-row { justify-content: center !important; }
+    .btn-primary { min-width: 260px; }
+  }
+
+  /* Bouton calendrier */
+  .date-btn {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; max-width: 520px;
+    background: var(--cream);
+    border: 2.5px solid var(--ink); border-radius: 12px;
+    font-family: var(--font-body); font-size: 20px; font-weight: 600;
+    color: var(--ink); padding: 14px 18px; margin-top: 16px;
+    cursor: pointer; text-align: left;
+    box-shadow: 0 4px 0 0 var(--ink);
+    transition: all 0.15s;
+  }
+  .date-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 0 0 var(--ink); }
+  .date-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 0 var(--ink); }
+  .date-btn.selected { border-color: var(--accent); box-shadow: 0 4px 0 0 var(--accent-dark); color: var(--accent); }
+  .date-btn .cal-icon { font-size: 26px; flex-shrink: 0; }
+  .date-btn .cal-text { flex: 1; }
+  .date-btn .cal-placeholder { color: rgba(74,74,106,0.4); font-weight: 500; }
+
+  .date-btn-wrap {
+    position: relative;
+    max-width: 520px;
+    margin-top: 16px;
+  }
+  .date-inp-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    -webkit-appearance: none;
+    border: none;
+    background: transparent;
+    font-size: 16px; /* évite le zoom auto sur iOS */
+  }
+
+  /* Date input natif stylisé */
+  input[type="date"].text-input {
+    -webkit-appearance: none;
+    appearance: none;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  input[type="date"].text-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    font-size: 22px;
+    filter: invert(25%) sepia(90%) saturate(2000%) hue-rotate(216deg);
+    margin-left: 8px;
+  }
+  input[type="date"].text-input::-webkit-inner-spin-button { display: none; }
+  input[type="date"].text-input::-webkit-datetime-edit-fields-wrapper { color: var(--accent); }
+  input[type="date"].text-input::-webkit-datetime-edit-text { color: var(--ink-soft); }
 </style>
 </head>
 <body>
@@ -543,22 +615,33 @@ function renderIncidentType(){
 
 function renderDate(){
   const today = new Date().toISOString().split("T")[0];
+
   screen().innerHTML = `
     <div class="question-block">
       <span class="qnum">4</span>
       <h2 class="qlabel"><b>Quand</b> est-ce arrivé ?<span class="req">*</span></h2>
     </div>
-    <input type="date" id="inp" class="text-input" max="${today}" value="${data.date||""}" />
-    <div class="btn-row">
-      <button class="btn-primary" id="cta" ${data.date?"":"disabled"}>OK ✓</button>
-      ${enterHint()}
+    <input type="date" id="date-inp" class="text-input"
+      max="${today}"
+      value="${data.date||""}"
+      style="cursor:pointer;" />
+    <div class="btn-row" style="margin-top:24px;">
+      <button class="btn-primary" id="date-cta" ${data.date?"":"disabled"}>OK ✓</button>
+      <span class="btn-hint">appuyez sur <kbd>Entrée</kbd> ↵</span>
     </div>`;
-  const inp = $("inp");
-  // Auto-ouvrir le calendrier dès le rendu
-  setTimeout(()=>{ try{ inp.showPicker(); }catch(e){} }, 120);
-  inp.onclick = ()=>{ try{ inp.showPicker(); }catch(e){} };
-  inp.onchange = e=>{ update("date",e.target.value); $("cta").disabled=!data.date; };
-  $("cta").onclick = ()=> data.date && next();
+
+  const inp = $("date-inp");
+  inp.focus();
+
+  const onChange = ()=>{
+    update("date", inp.value);
+    $("date-cta").disabled = !inp.value;
+    if(inp.value) setTimeout(next, 300); // avance auto
+  };
+
+  inp.onchange = onChange;
+  $("date-cta").onclick = ()=> data.date && next();
+  inp.onkeydown = e=>{ if(e.key==="Enter" && data.date) next(); };
 }
 
 function renderTimeSlot(){
@@ -716,7 +799,7 @@ function renderConsent(){
   screen().innerHTML = `
     <div class="question-block">
       <span class="qnum">13</span>
-      <h2 class="qlabel" style="font-size:clamp(18px,3.5vw,22px);line-height:1.45;">
+      <h2 class="qlabel" style="font-size:clamp(16px,3.5vw,20px);line-height:1.45;">
         J'accepte d'être contacté et que mes informations soient traitées par RunWash dans le cadre de ce SAV et de la relation commerciale qui pourrait en découler.
       </h2>
       <p style="font-style:italic;font-size:14px;margin-top:10px;color:var(--ink-soft);max-width:520px;line-height:1.5;">
@@ -755,8 +838,7 @@ function renderThanks(){
       <p class="card-title">▸ La suite</p>
       <ul>
         <li>Vérification vidéosurveillance sous <b>48h max</b></li>
-        <li>Nous vous appelons au <b>${esc(data.phone||"numéro fourni")}</b></li>
-        <li>Votre jeton vous attend au centre <b>${esc(data.center)}</b></li>
+        <li>Nous vous rappelons au <b>${esc(data.phone||"numéro fourni")}</b> pour convenir du remboursement</li>
       </ul>
     </div>
     <p class="hint" style="margin-top:20px;font-style:italic;">Nous vous prions de nous excuser pour la gêne occasionnée 🙏</p>`;
@@ -769,21 +851,30 @@ async function submit(){
   if(submitting) return;
   submitting = true;
   $("status").innerHTML=`<p style="margin-top:14px;font-weight:600;">Envoi en cours…</p>`;
-  const payload = { ...data, submitted_at: new Date().toISOString(), source:"runwash-sav-v2" };
+
+  const payload = {...data, submitted_at:new Date().toISOString(), source:"runwash-sav-v2"};
+
   if(!WEBHOOK_URL){
-    console.log("PAYLOAD:",JSON.stringify(payload,null,2));
-    setTimeout(()=>{ submitting=false; next(); },600);
+    console.log("PAYLOAD:", JSON.stringify(payload, null, 2));
+    setTimeout(()=>{ submitting=false; next(); }, 600);
     return;
   }
+
   try {
-    const res = await fetch(WEBHOOK_URL,{
-      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
+    const res = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
     });
-    if(!res.ok) throw new Error("Erreur "+res.status);
-    submitting=false; next();
-  } catch(err){
-    submitting=false;
-    $("status").innerHTML=`<p style="color:var(--bad);margin-top:14px;font-weight:600;">Impossible d'envoyer. Réessayez dans un instant.</p>`;
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    submitting = false;
+    next();
+  } catch(err) {
+    console.error("Erreur envoi:", err.message);
+    submitting = false;
+    $("status").innerHTML = `<p style="color:var(--bad);margin-top:14px;font-weight:600;">
+      Impossible d'envoyer. Vérifiez votre connexion et réessayez.
+    </p>`;
   }
 }
 
