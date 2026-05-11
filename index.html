@@ -636,7 +636,7 @@ function renderDate(){
   const onChange = ()=>{
     update("date", inp.value);
     $("date-cta").disabled = !inp.value;
-    if(inp.value) setTimeout(next, 300); // avance auto
+
   };
 
   inp.onchange = onChange;
